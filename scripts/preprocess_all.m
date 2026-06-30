@@ -14,6 +14,16 @@ scripts_dir = fileparts(mfilename('fullpath'));
 addpath(scripts_dir);
 
 cfg = load_preproc_config(config_file);
+cfg = apply_preproc_defaults(cfg);
+
+if cfg.run_dicom_conversion
+    fprintf('Running DICOM-to-NIfTI conversion from %s\n', cfg.dicom_root);
+    conversions = convert_dicom_to_nifti(cfg);
+    fprintf('Completed %d conversion job(s). Preprocessing will read from %s\n', ...
+        numel(conversions), cfg.converted_root);
+    cfg.raw_root = cfg.converted_root;
+end
+
 validate_config(cfg);
 
 if ~exist(cfg.output_root, 'dir')
@@ -45,6 +55,7 @@ for i_sub = 1:numel(subjects)
         ensure_dir(log_dir);
 
         run_inputs = stage_inputs(inputs, work_dir);
+        % Validate dcm2niix timing metadata before SPM batch construction.
         func_info = read_func_json(run_inputs.func_json);
         [~, nvols] = get_nii_frames(run_inputs.func_nii);
 
@@ -86,6 +97,25 @@ if exist(config_file, 'file') == 2
     cfg = feval(config_name);
 else
     cfg = feval(config_file);
+end
+end
+
+function cfg = apply_preproc_defaults(cfg)
+if ~isfield(cfg, 'run_dicom_conversion') || isempty(cfg.run_dicom_conversion)
+    cfg.run_dicom_conversion = false;
+end
+if ~isfield(cfg, 'dcm2niix_compress') || isempty(cfg.dcm2niix_compress)
+    cfg.dcm2niix_compress = false;
+end
+if ~isfield(cfg, 'overwrite_converted') || isempty(cfg.overwrite_converted)
+    cfg.overwrite_converted = false;
+end
+if ~isfield(cfg, 'dcm2niix_filename_pattern') || isempty(cfg.dcm2niix_filename_pattern)
+    cfg.dcm2niix_filename_pattern = '%f_%p_%t_%s';
+end
+if (~isfield(cfg, 'converted_root') || isempty(cfg.converted_root)) && ...
+        isfield(cfg, 'raw_root')
+    cfg.converted_root = cfg.raw_root;
 end
 end
 
@@ -288,27 +318,34 @@ function file_name = find_one_file(search_dirs, pattern, description)
 if ischar(search_dirs)
     search_dirs = {search_dirs};
 end
+patterns = ensure_cellstr(pattern);
 
 matches = {};
 for i = 1:numel(search_dirs)
     if exist(search_dirs{i}, 'dir') ~= 7
         continue;
     end
-    listing = dir(fullfile(search_dirs{i}, pattern));
-    listing = listing(~[listing.isdir]);
-    for j = 1:numel(listing)
-        matches{end + 1} = fullfile(listing(j).folder, listing(j).name); %#ok<AGROW>
+    for i_pattern = 1:numel(patterns)
+        listing = dir(fullfile(search_dirs{i}, patterns{i_pattern}));
+        listing = listing(~[listing.isdir]);
+        for j = 1:numel(listing)
+            this_match = fullfile(listing(j).folder, listing(j).name);
+            if ~any(strcmp(matches, this_match))
+                matches{end + 1} = this_match; %#ok<AGROW>
+            end
+        end
     end
 end
 
 if isempty(matches)
     error('preprocess_all:InputMissing', ...
-        'Could not find %s matching "%s".', description, pattern);
+        'Could not find %s matching "%s".', ...
+        description, pattern_description(patterns));
 end
 if numel(matches) > 1
     error('preprocess_all:AmbiguousInput', ...
         'Found multiple %s files matching "%s":\n%s', ...
-        description, pattern, strjoin(matches, newline));
+        description, pattern_description(patterns), strjoin(matches, newline));
 end
 
 file_name = matches{1};
@@ -323,4 +360,8 @@ if exist(candidate, 'file') == 2
 end
 
 json_file = find_one_file(func_dir, json_pattern, 'functional JSON sidecar');
+end
+
+function text = pattern_description(patterns)
+text = strjoin(patterns, ', ');
 end
