@@ -1,0 +1,31 @@
+# Raw and generated neuroimaging data
+data/
+*.nii
+*.nii.gz
+*.img
+*.hdr
+*.mat
+*.json
+
+# SPM generated files
+rp_*.txt
+mean*.nii
+a*.nii
+r*.nii
+w*.nii
+s*.nii
+y_*.nii
+iy_*.nii
+c1*.nii
+c2*.nii
+c3*.nii
+m*.nii
+
+# Logs
+logs/*.log
+logs/*.txt
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/

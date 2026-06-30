@@ -1,0 +1,25 @@
+subject: sub-01
+session: single_session
+raw_func_nii: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\converted\sub-01\func\func_YJ2_FACE_1(M275)_20260102152307_2.nii
+raw_func_json: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\converted\sub-01\func\func_YJ2_FACE_1(M275)_20260102152307_2.json
+raw_t1_nii: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\converted\sub-01\anat\anat_T1WI_sag_20260102152307_4.nii
+staged_func_nii: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\func.nii
+staged_func_json: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\func.json
+staged_t1_nii: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\T1.nii
+TR: 2
+TA: 1.94444444444
+nslices: 36
+nvols: 275
+slice_order: [2 4 6 8 10 12 14 16 18 20 22 24 26 28 30 32 34 36 1 3 5 7 9 11 13 15 17 19 21 23 25 27 29 31 33 35]
+reference_slice: 1
+voxel_size: [3 3 3]
+smooth_fwhm: [6 6 6]
+motion_rows: 275
+motion_columns: 6
+output_slice_timed: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\afunc.nii
+output_realigned: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\rafunc.nii
+output_normalized: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\wrafunc.nii
+output_smoothed: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\swrafunc.nii
+output_mean_func: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\meanafunc.nii
+output_rp_txt: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\rp_afunc.txt
+output_forward_deformation: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\derivatives\spm_preproc\sub-01\single_session\work\y_T1.nii

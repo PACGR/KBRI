@@ -53,13 +53,19 @@ matlabbatch{2}.spm.spatial.realign.estwrite.roptions.wrap = [0 0 0];
 matlabbatch{2}.spm.spatial.realign.estwrite.roptions.mask = 1;
 matlabbatch{2}.spm.spatial.realign.estwrite.roptions.prefix = 'r';
 
-% Coregister estimate only. The copied T1 header is adjusted to mean EPI.
-matlabbatch{3}.spm.spatial.coreg.estimate.ref(1) = cfg_dep( ...
+% Keep T1 fixed, move the mean functional to T1 space, and apply the same
+% header transform to all realigned functional frames.
+matlabbatch{3}.spm.spatial.coreg.estimate.ref = {t1_nii};
+
+matlabbatch{3}.spm.spatial.coreg.estimate.source(1) = cfg_dep( ...
     'Realign: Estimate & Reslice: Mean Image', ...
     substruct('.', 'val', '{}', {2}, '.', 'val', '{}', {1}, '.', 'val', '{}', {1}, '.', 'val', '{}', {1}), ...
     substruct('.', 'rmean'));
-matlabbatch{3}.spm.spatial.coreg.estimate.source = {t1_nii};
-matlabbatch{3}.spm.spatial.coreg.estimate.other = {''};
+
+matlabbatch{3}.spm.spatial.coreg.estimate.other(1) = cfg_dep( ...
+    'Realign: Estimate & Reslice: Resliced Images (Sess 1)', ...
+    substruct('.', 'val', '{}', {2}, '.', 'val', '{}', {1}, '.', 'val', '{}', {1}, '.', 'val', '{}', {1}), ...
+    substruct('.', 'sess', '()', {1}, '.', 'rfiles'));
 matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.cost_fun = 'nmi';
 matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.sep = [4 2];
 matlabbatch{3}.spm.spatial.coreg.estimate.eoptions.tol = ...
@@ -71,7 +77,7 @@ tpm = fullfile(spm('Dir'), 'tpm', 'TPM.nii');
 matlabbatch{4}.spm.spatial.preproc.channel.vols = {t1_nii};
 matlabbatch{4}.spm.spatial.preproc.channel.biasreg = 0.001;
 matlabbatch{4}.spm.spatial.preproc.channel.biasfwhm = 60;
-matlabbatch{4}.spm.spatial.preproc.channel.write = [0 1];
+matlabbatch{4}.spm.spatial.preproc.channel.write = [1 1];
 for k = 1:6
     matlabbatch{4}.spm.spatial.preproc.tissue(k).tpm = {sprintf('%s,%d', tpm, k)};
 end
@@ -97,7 +103,7 @@ matlabbatch{4}.spm.spatial.preproc.warp.reg = [0 0.001 0.5 0.05 0.2];
 matlabbatch{4}.spm.spatial.preproc.warp.affreg = 'mni';
 matlabbatch{4}.spm.spatial.preproc.warp.fwhm = 0;
 matlabbatch{4}.spm.spatial.preproc.warp.samp = 3;
-matlabbatch{4}.spm.spatial.preproc.warp.write = [1 0];
+matlabbatch{4}.spm.spatial.preproc.warp.write = [1 1];
 matlabbatch{4}.spm.spatial.preproc.warp.vox = NaN;
 matlabbatch{4}.spm.spatial.preproc.warp.bb = [NaN NaN NaN; NaN NaN NaN];
 
