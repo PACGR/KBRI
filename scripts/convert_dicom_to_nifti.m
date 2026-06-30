@@ -13,7 +13,7 @@ ensure_dir(cfg.converted_root);
 ensure_dir(cfg.log_root);
 
 subjects = resolve_subjects_for_conversion(cfg);
-conversions = struct('subject', {}, 'session', {}, 'dicom_dir', {}, ...
+conversions = struct('subject', {}, 'session', {}, 'run', {}, 'dicom_dir', {}, ...
     'output_dir', {}, 'command', {}, 'status', {}, 'output', {}, ...
     'nii_files', {}, 'json_files', {}, 'skipped', {});
 
@@ -32,7 +32,7 @@ for i_sub = 1:numel(subjects)
         job = jobs(i_job);
         ensure_dir(job.output_dir);
 
-        log_dir = fullfile(cfg.log_root, job.subject, session_label(job.session));
+        log_dir = conversion_log_dir(cfg, job);
         ensure_dir(log_dir);
         log_file = fullfile(log_dir, ['dcm2niix_' job.label '_log.txt']);
 
@@ -67,6 +67,7 @@ for i_sub = 1:numel(subjects)
         conversions(end + 1) = struct( ...
             'subject', job.subject, ...
             'session', job.session, ...
+            'run', job.run, ...
             'dicom_dir', job.dicom_dir, ...
             'output_dir', job.output_dir, ...
             'command', cmd, ...
@@ -95,6 +96,24 @@ end
 if ~isfield(cfg, 'dcm2niix_filename_pattern') || isempty(cfg.dcm2niix_filename_pattern)
     cfg.dcm2niix_filename_pattern = '%f_%p_%t_%s';
 end
+if ~isfield(cfg, 'layout') || isempty(cfg.layout)
+    cfg.layout = 'bids';
+end
+if ~isfield(cfg, 'subject_pattern') || isempty(cfg.subject_pattern)
+    cfg.subject_pattern = '*';
+end
+if ~isfield(cfg, 'subjects') || isempty(cfg.subjects)
+    cfg.subjects = {};
+end
+if ~isfield(cfg, 'exclude_subject_dirs') || isempty(cfg.exclude_subject_dirs)
+    cfg.exclude_subject_dirs = {'converted', 'derivatives', 'logs', '.', '..'};
+end
+if ~isfield(cfg, 'run_dir_patterns') || isempty(cfg.run_dir_patterns)
+    cfg.run_dir_patterns = {'face_run*'};
+end
+if ~isfield(cfg, 't1_dir_pattern') || isempty(cfg.t1_dir_pattern)
+    cfg.t1_dir_pattern = 't1';
+end
 end
 
 function validate_conversion_config(cfg)
@@ -108,6 +127,11 @@ end
 if exist(cfg.dicom_root, 'dir') ~= 7
     error('convert_dicom_to_nifti:DicomRootMissing', ...
         'DICOM root does not exist: %s', cfg.dicom_root);
+end
+if ~strcmpi(cfg.layout, 'subject_run_folders') && ~strcmpi(cfg.layout, 'bids')
+    error('convert_dicom_to_nifti:UnsupportedLayout', ...
+        'Unsupported cfg.layout "%s". Use "subject_run_folders" or "bids".', ...
+        cfg.layout);
 end
 end
 
@@ -133,12 +157,13 @@ if isfield(cfg, 'subjects') && ~isempty(cfg.subjects)
     return;
 end
 
-listing = dir(fullfile(cfg.dicom_root, 'sub-*'));
+listing = dir(fullfile(cfg.dicom_root, cfg.subject_pattern));
 subjects = names_from_dirs(listing);
+subjects = subjects(~ismember(subjects, ensure_cellstr(cfg.exclude_subject_dirs)));
 if isempty(subjects)
     error('convert_dicom_to_nifti:NoSubjects', ...
-        'No subject folders found under %s. Set cfg.subjects if needed.', ...
-        cfg.dicom_root);
+        'No subject folders found under %s matching "%s". Set cfg.subjects if needed.', ...
+        cfg.dicom_root, cfg.subject_pattern);
 end
 end
 
@@ -158,14 +183,19 @@ end
 
 function jobs = build_subject_conversion_jobs(cfg, subject, sessions)
 jobs = struct('subject', {}, 'session', {}, 'label', {}, ...
-    'dicom_dir', {}, 'output_dir', {});
+    'run', {}, 'dicom_dir', {}, 'output_dir', {});
 seen = {};
+
+if strcmpi(cfg.layout, 'subject_run_folders')
+    jobs = build_subject_run_conversion_jobs(cfg, subject);
+    return;
+end
 
 subject_dicom_root = fullfile(cfg.dicom_root, subject);
 subject_output_root = fullfile(cfg.converted_root, subject);
 subject_anat = fullfile(subject_dicom_root, cfg.anat_dir);
 if exist(subject_anat, 'dir') == 7
-    [jobs, seen] = add_job(jobs, seen, cfg, subject, '', cfg.anat_dir, ...
+    [jobs, seen] = add_job(jobs, seen, cfg, subject, '', '', cfg.anat_dir, ...
         subject_anat, fullfile(subject_output_root, cfg.anat_dir));
 end
 
@@ -179,24 +209,65 @@ for i_ses = 1:numel(sessions)
     added_modality = false;
 
     if exist(func_dicom, 'dir') == 7
-        [jobs, seen] = add_job(jobs, seen, cfg, subject, session, cfg.func_dir, ...
+        [jobs, seen] = add_job(jobs, seen, cfg, subject, session, '', cfg.func_dir, ...
             func_dicom, fullfile(session_output_root, cfg.func_dir));
         added_modality = true;
     end
     if exist(anat_dicom, 'dir') == 7
-        [jobs, seen] = add_job(jobs, seen, cfg, subject, session, cfg.anat_dir, ...
+        [jobs, seen] = add_job(jobs, seen, cfg, subject, session, '', cfg.anat_dir, ...
             anat_dicom, fullfile(session_output_root, cfg.anat_dir));
         added_modality = true;
     end
 
     if ~added_modality && exist(session_dicom_root, 'dir') == 7
-        [jobs, seen] = add_job(jobs, seen, cfg, subject, session, 'session', ...
+        [jobs, seen] = add_job(jobs, seen, cfg, subject, session, '', 'session', ...
             session_dicom_root, session_output_root);
     end
 end
 end
 
-function [jobs, seen] = add_job(jobs, seen, cfg, subject, session, label, ...
+function jobs = build_subject_run_conversion_jobs(cfg, subject)
+jobs = struct('subject', {}, 'session', {}, 'label', {}, ...
+    'run', {}, 'dicom_dir', {}, 'output_dir', {});
+seen = {};
+
+subject_dicom_root = fullfile(cfg.dicom_root, subject);
+subject_output_root = fullfile(cfg.converted_root, subject);
+
+t1_dirs = find_matching_dirs(subject_dicom_root, cfg.t1_dir_pattern);
+if isempty(t1_dirs)
+    error('convert_dicom_to_nifti:NoT1Folder', ...
+        'No T1 folder found for %s under %s matching "%s".', ...
+        subject, subject_dicom_root, ...
+        pattern_description(ensure_cellstr(cfg.t1_dir_pattern)));
+end
+if numel(t1_dirs) > 1
+    error('convert_dicom_to_nifti:AmbiguousT1Folder', ...
+        'Found multiple T1 folders for %s:\n%s', ...
+        subject, strjoin(t1_dirs, newline));
+end
+
+run_dirs = find_matching_dirs(subject_dicom_root, cfg.run_dir_patterns);
+run_dirs = run_dirs(~ismember(run_dirs, t1_dirs));
+if isempty(run_dirs)
+    error('convert_dicom_to_nifti:NoRuns', ...
+        'No functional run folders found for %s under %s matching "%s".', ...
+        subject, subject_dicom_root, ...
+        pattern_description(ensure_cellstr(cfg.run_dir_patterns)));
+end
+
+[jobs, seen] = add_job(jobs, seen, cfg, subject, '', '', 'anat', ...
+    t1_dirs{1}, fullfile(subject_output_root, cfg.anat_dir));
+
+for i = 1:numel(run_dirs)
+    [~, run_name] = fileparts(run_dirs{i});
+    run_label = sanitize_label(run_name);
+    [jobs, seen] = add_job(jobs, seen, cfg, subject, '', run_label, 'func', ...
+        run_dirs{i}, fullfile(subject_output_root, cfg.func_dir, run_label));
+end
+end
+
+function [jobs, seen] = add_job(jobs, seen, cfg, subject, session, run, label, ...
     dicom_dir, output_dir) %#ok<INUSD>
 key = [dicom_dir '|' output_dir];
 if any(strcmp(seen, key))
@@ -207,6 +278,7 @@ seen{end + 1} = key;
 jobs(end + 1) = struct( ... %#ok<AGROW>
     'subject', subject, ...
     'session', session, ...
+    'run', run, ...
     'label', sanitize_label(label), ...
     'dicom_dir', dicom_dir, ...
     'output_dir', output_dir);
@@ -249,6 +321,7 @@ cleaner = onCleanup(@() fclose(fid));
 
 fprintf(fid, 'subject: %s\n', job.subject);
 fprintf(fid, 'session: %s\n', session_label(job.session));
+fprintf(fid, 'run: %s\n', job.run);
 fprintf(fid, 'dicom_dir: %s\n', job.dicom_dir);
 fprintf(fid, 'output_dir: %s\n', job.output_dir);
 fprintf(fid, 'skipped_existing_outputs: %d\n', skipped);
@@ -257,6 +330,19 @@ fprintf(fid, 'status: %d\n', status);
 fprintf(fid, 'nifti_outputs: %s\n', strjoin(nii_files, '; '));
 fprintf(fid, 'json_outputs: %s\n', strjoin(json_files, '; '));
 fprintf(fid, 'dcm2niix_output:\n%s\n', cmdout);
+end
+
+function log_dir = conversion_log_dir(cfg, job)
+if strcmpi(cfg.layout, 'subject_run_folders')
+    if ~isempty(job.run)
+        label = job.run;
+    else
+        label = 'anat';
+    end
+else
+    label = session_label(job.session);
+end
+log_dir = fullfile(cfg.log_root, job.subject, label);
 end
 
 function files = list_niftis(folder_name)
@@ -304,6 +390,31 @@ names = {listing.name};
 names = names(~ismember(names, {'.', '..'}));
 end
 
+function dirs = find_matching_dirs(parent_dir, patterns)
+patterns = ensure_cellstr(patterns);
+dirs = {};
+if exist(parent_dir, 'dir') ~= 7
+    return;
+end
+
+for i_pattern = 1:numel(patterns)
+    listing = dir(fullfile(parent_dir, patterns{i_pattern}));
+    listing = listing([listing.isdir]);
+    for i = 1:numel(listing)
+        if ismember(listing(i).name, {'.', '..'})
+            continue;
+        end
+        this_dir = fullfile(listing(i).folder, listing(i).name);
+        if ~any(strcmp(dirs, this_dir))
+            dirs{end + 1} = this_dir; %#ok<AGROW>
+        end
+    end
+end
+
+[~, order] = sort(lower(dirs));
+dirs = dirs(order);
+end
+
 function label = session_label(session)
 if isempty(session)
     label = 'single_session';
@@ -325,4 +436,8 @@ end
 function quoted = quote_arg(value)
 value = char(value);
 quoted = ['"' strrep(value, '"', '\"') '"'];
+end
+
+function text = pattern_description(patterns)
+text = strjoin(patterns, ', ');
 end

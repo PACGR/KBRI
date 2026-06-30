@@ -1,0 +1,16 @@
+subject: KIM
+session: single_session
+run: face_run1
+dicom_dir: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\dicom\KIM\face_run1
+output_dir: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\converted\KIM\func\face_run1
+skipped_existing_outputs: 0
+command: "C:\MRIcroGL\Resources\dcm2niix.exe" -b y -z n -f "%f_%p_%t_%s" -o "F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\converted\KIM\func\face_run1" "F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\dicom\KIM\face_run1"
+status: 0
+nifti_outputs: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\converted\KIM\func\face_run1\face_run1_YJ2_FACE_1(M275)_20260102152307_2.nii
+json_outputs: F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\converted\KIM\func\face_run1\face_run1_YJ2_FACE_1(M275)_20260102152307_2.json
+dcm2niix_output:
+Chris Rorden's dcm2niiX version v1.0.20220720  (JP2:OpenJPEG) (JP-LS:CharLS) MSC1900  (64-bit Windows)
+Found 275 DICOM file(s)
+Convert 275 DICOM as F:\A_Hanyang University\D_Cognitive_Convergence_Science\2026_KBRI_BDIL_summerIntern\spm_fmri_preproc_auto\data\converted\KIM\func\face_run1\face_run1_YJ2_FACE_1(M275)_20260102152307_2 (64x64x36x275)
+Conversion required 0.336000 seconds.
+

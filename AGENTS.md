@@ -51,3 +51,82 @@ After each subject/session:
 - Separate configuration, file discovery, batch construction, execution, and QC.
 - Add comments for SPM-specific assumptions.
 - When making changes, explain which preprocessing step is affected.
+
+## Data Layout Support
+
+This project must support both BIDS-like subject names and arbitrary subject folder names.
+
+Valid subject folder examples:
+- sub-01
+- sub-02
+- KIM
+- CHI
+- PARK_JS
+
+Do not require subject folders to start with `sub-*`.
+
+Subject discovery rules:
+- If `cfg.subjects` is provided, use only those subject folder names.
+- Otherwise discover subject folders under `cfg.dicom_root` or `cfg.raw_root` using `cfg.subject_pattern`.
+- Exclude non-subject folders listed in `cfg.exclude_subject_dirs`.
+- Never rename, move, or modify original DICOM folders.
+
+Supported DICOM layout:
+```text
+data/dicom/
+  KIM/
+    face_run1/
+    face_run2/
+    face_runN/
+    t1/
+  CHI/
+    face_run1/
+    face_run2/
+    t1/
+
+Run discovery rules:
+
+Each functional run can be a subject-level folder such as face_run1, face_run2, etc.
+The T1 anatomical folder is subject-level and should be reused for all runs of that subject.
+Functional run folders are discovered using cfg.run_dir_patterns.
+The anatomical folder is discovered using cfg.t1_dir_pattern.
+
+Derivative output organization:
+
+data/derivatives/spm_preproc/
+  KIM/
+    anat/
+    func/
+      face_run1/
+      face_run2/
+  CHI/
+    anat/
+    func/
+      face_run1/
+
+Converted NIfTI organization:
+
+data/converted/
+  KIM/
+    anat/
+    func/
+      face_run1/
+      face_run2/
+
+Keep the preprocessing sequence unchanged:
+
+DICOM conversion if enabled
+Slice Timing
+Realign: Estimate & Reslice
+Coregister: Estimate
+Segment T1
+Normalise: Write
+Smooth
+
+Coregistration direction must remain:
+
+Reference/fixed image: T1 anatomical image
+Source/moved image: mean functional image
+Other images: realigned functional frames
+
+Segment must write forward deformation y_T1.nii for Normalise: Write.

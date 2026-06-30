@@ -29,3 +29,4 @@ logs/*.txt
 .DS_Store
 Thumbs.db
 .vscode/
+config/local_config.m
